@@ -3,10 +3,10 @@
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
 
+import { FaGoogle, FaGithub } from "react-icons/fa";
 import { LoaderCircle, OctagonAlertIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,30 +22,20 @@ import {
 } from "@/components/ui/form";
 import Link from "next/link";
 
-const formSchema = z
-  .object({
-    name: z.string().min(1, { message: "Name is required" }),
-    email: z.string().email(),
-    password: z.string().min(1, { message: "Password is required" }),
-    confirmPassword: z.string().min(1, { message: "Confirm password is required" }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+const formSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, { message: "Password is required" }),
+});
 
-const SignUpView = () => {
-  const router = useRouter();
+const SignInView = () => {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
       email: "",
       password: "",
-      confirmPassword: "",
     },
   });
 
@@ -53,17 +43,34 @@ const SignUpView = () => {
     setError(null);
     setPending(true);
 
-    authClient.signUp.email(
+    authClient.signIn.email(
       {
-        name: data.name,
         email: data.email,
         password: data.password,
+        callbackURL: "/",
       },
       {
-        onSuccess: () => {
+        onError: ({ error }) => {
           setPending(false);
-          router.push("/");
+          setError(error.message);
         },
+      },
+    );
+  };
+
+  const onSocial = (provider: "github" | "google") => {
+    setError(null);
+    setPending(true);
+
+    authClient.signIn.social(
+      {
+        provider: provider,
+        callbackURL: "/",
+      },
+      {
+        // onSuccess: () => {
+        //   setPending(false);
+        // },
         onError: ({ error }) => {
           setPending(false);
           setError(error.message);
@@ -80,25 +87,10 @@ const SignUpView = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 md:p-8">
               <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center text-center">
-                  <h1 className="text-2xl font-bold">Let&apos;s get started.</h1>
+                  <h1 className="text-2xl font-bold">Welcome back</h1>
                   <p className="text-muted-foreground text-balance">
-                    Create your account
+                    Login to your account
                   </p>
-                </div>
-                <div className="grid gap-3">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input type="text" placeholder="Enter name..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
                 <div className="grid gap-3">
                   <FormField
@@ -108,7 +100,7 @@ const SignUpView = () => {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="Enter email..." {...field} />
+                          <Input type="email" placeholder="john@example.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -122,21 +114,6 @@ const SignUpView = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="*******" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="*******" {...field} />
                         </FormControl>
@@ -166,22 +143,24 @@ const SignUpView = () => {
                     type="button"
                     disabled={pending}
                     className="w-full"
+                    onClick={() => onSocial("google")}
                   >
-                    Google
+                    <FaGoogle />
                   </Button>
                   <Button
                     variant="outline"
                     type="button"
                     disabled={pending}
                     className="w-full"
+                    onClick={() => onSocial("github")}
                   >
-                    GitHub
+                    <FaGithub />
                   </Button>
                 </div>
                 <div className="text-center text-sm">
-                  Already have an account?{" "}
-                  <Link href="/sign-in" className="underline underline-offset-4">
-                    Sign in
+                  Don&apos;t have an account?{" "}
+                  <Link href="/sign-up" className="underline underline-offset-4">
+                    Sign up
                   </Link>
                 </div>
               </div>
@@ -208,4 +187,4 @@ const SignUpView = () => {
   );
 };
 
-export default SignUpView;
+export default SignInView;
